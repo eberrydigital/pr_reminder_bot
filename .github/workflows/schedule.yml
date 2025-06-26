@@ -2,23 +2,26 @@ name: PR Reminder Bot
 
 on:
   schedule:
-    - cron: '0 6 * * *' # runs at 08:00 Stockholm time (UTC+2 -> 6 UTC)
+    - cron: '0 6 * * *'  # 08:00 Stockholm time (UTC+2 = 06:00 UTC)
   workflow_dispatch:
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+
       - name: Install dependencies
         run: npm install
-      - name: Run PR Reminder
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ORG: ${{ secrets.GITHUB_ORG }}
-          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+
+      - name: Run PR Reminder bot
         run: npm start

@@ -3,6 +3,7 @@ import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv';
+import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
 dotenv.config();
 
@@ -17,35 +18,36 @@ interface Team {
     members: string[];
 }
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_ORG = process.env.GITHUB_ORG;
-const SLACK_TOKEN = process.env.SLACK_TOKEN;
-
-if (!GITHUB_TOKEN || !SLACK_TOKEN || !GITHUB_ORG) {
-    console.error('Missing environment variables.');
-    process.exit(1);
+async function getSecret(name: string): Promise<string | undefined> {
+    try {
+        const client = new SSMClient({ region: process.env.AWS_REGION || 'eu-west-1' });
+        const command = new GetParameterCommand({ Name: name, WithDecryption: true });
+        const response = await client.send(command);
+        return response.Parameter?.Value;
+    } catch (error) {
+        console.error(`Error retrieving secret ${name}:`, error);
+        return undefined;
+    }
 }
 
-const config: Config = yaml.load(fs.readFileSync('./config.yaml', 'utf8')) as Config;
-
-async function getOpenPRs(repo: string) {
-    const url = `https://api.github.com/repos/${GITHUB_ORG}/${repo}/pulls?state=open&per_page=100`;
+async function getOpenPRs(repo: string, org: string, token: string) {
+    const url = `https://api.github.com/repos/${org}/${repo}/pulls?state=open&per_page=100`;
     const response = await axios.get(url, {
         headers: {
-            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.github+json',
         },
     });
     return response.data;
 }
 
-async function sendSlackMessage(channel: string, blocks: any) {
+async function sendSlackMessage(channel: string, blocks: any, slackToken: string) {
     await axios.post('https://slack.com/api/chat.postMessage', {
         channel,
-        blocks
+        blocks,
     }, {
         headers: {
-            Authorization: `Bearer ${SLACK_TOKEN}`,
+            Authorization: `Bearer ${slackToken}`,
             'Content-Type': 'application/json',
         },
     });
@@ -58,12 +60,10 @@ function buildSlackBlocks(team: Team, prsByRepo: Record<string, any[]>) {
             text: {
                 type: 'plain_text',
                 text: `🔔 Open PRs for ${team.name}`,
-                emoji: true
+                emoji: true,
             },
         },
-        {
-            type: 'divider'
-        }
+        { type: 'divider' },
     ];
 
     for (const repo of Object.keys(prsByRepo)) {
@@ -84,21 +84,30 @@ function buildSlackBlocks(team: Team, prsByRepo: Record<string, any[]>) {
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `${colorEmoji} *<${pr.html_url}|${pr.title}>* - 👤 *${pr.user.login}* - ⏱ *${daysOpen}* days`,
+                    text: `${colorEmoji} *<${pr.html_url}|${truncateTitle(pr.title)}>* - 👤 *${pr.user.login}* - ⏱ *${daysOpen}* days`,
                 },
             });
         }
     }
 
+    blocks.push({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: '🔎 Don\'t forget to review these PRs today!' }],
+    });
+
     return blocks;
 }
 
-async function processTeam(team: Team) {
+function truncateTitle(title: string, maxLength: number = 100) {
+    return title.length > maxLength ? title.substring(0, maxLength) + '…' : title;
+}
+
+async function processTeam(team: Team, creds: { GITHUB_TOKEN: string; GITHUB_ORG: string; SLACK_TOKEN: string }) {
     let hasPRs = false;
     const prsByRepo: Record<string, any[]> = {};
 
     for (const repo of team.repositories) {
-        const prs = await getOpenPRs(repo);
+        const prs = await getOpenPRs(repo, creds.GITHUB_ORG, creds.GITHUB_TOKEN);
         const teamPRs = prs.filter((pr: any) => team.members.includes(pr.user.login));
 
         if (teamPRs.length > 0) {
@@ -109,28 +118,35 @@ async function processTeam(team: Team) {
 
     if (hasPRs) {
         const blocks = buildSlackBlocks(team, prsByRepo);
-        await sendSlackMessage(team.slack_channel, blocks);
+        await sendSlackMessage(team.slack_channel, blocks, creds.SLACK_TOKEN);
     } else {
         await axios.post('https://slack.com/api/chat.postMessage', {
             channel: team.slack_channel,
             text: `:tada: No open PRs for ${team.name}!`,
         }, {
             headers: {
-                Authorization: `Bearer ${SLACK_TOKEN}`,
+                Authorization: `Bearer ${creds.SLACK_TOKEN}`,
                 'Content-Type': 'application/json',
             },
         });
     }
 }
 
-function truncateTitle(title: string, maxLength: number = 100) {
-    return title.length > maxLength ? title.substring(0, maxLength) + '…' : title;
-}
-
 (async () => {
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || await getSecret('/pr-reminder/github_token');
+    const GITHUB_ORG = process.env.GITHUB_ORG || await getSecret('/pr-reminder/github_org');
+    const SLACK_TOKEN = process.env.SLACK_TOKEN || await getSecret('/pr-reminder/slack_token');
+
+    if (!GITHUB_TOKEN || !SLACK_TOKEN || !GITHUB_ORG) {
+        console.error('Missing required secrets. Exiting.');
+        process.exit(1);
+    }
+
+    const config: Config = yaml.load(fs.readFileSync('./config.yaml', 'utf8')) as Config;
+
     for (const team of config.teams) {
         try {
-            await processTeam(team);
+            await processTeam(team, { GITHUB_TOKEN, GITHUB_ORG, SLACK_TOKEN });
         } catch (err) {
             console.error(`Error processing team ${team.name}:`, err);
         }

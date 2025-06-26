@@ -6,6 +6,7 @@
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.835.0",
     "axios": "^1.7.2",
     "dayjs": "^1.11.10",
     "dotenv": "^16.4.5",
