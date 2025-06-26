@@ -1,0 +1,8 @@
+teams:
+  - name: Team Test
+    slack_channel: "#team-book-qa"
+    repositories:
+      - strawberry_web
+      - e2e-tests
+    members:
+      - davidmateodev

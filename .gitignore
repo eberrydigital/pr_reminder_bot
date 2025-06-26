@@ -1,0 +1,4 @@
+.env
+.idea
+pr_reminder_bot.iml
+node_modules
