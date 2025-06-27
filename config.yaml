@@ -1,8 +1,11 @@
 teams:
-  - name: Team Test
-    slack_channel: "#team-book-qa"
+  - name: QA Chapter
+    slack_channel: "#team-chapter-qa"
     repositories:
-      - strawberry_web
       - e2e-tests
+      - e2e-apps
     members:
       - davidmateodev
+      - christopherlingcarragher
+      - AnatoliTsoi
+      - volodimirchernov
