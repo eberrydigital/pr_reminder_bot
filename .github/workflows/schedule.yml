@@ -2,7 +2,7 @@ name: PR Reminder Bot
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # 08:00 Stockholm time (UTC+2 = 06:00 UTC)
+    - cron: '0 6 * * 1-5'  # 08:00 Stockholm time every day between Monday and Friday
   workflow_dispatch:
 
 jobs:
