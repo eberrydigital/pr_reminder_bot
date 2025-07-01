@@ -18,6 +18,30 @@ interface Team {
     members: string[];
 }
 
+const userNameCache = new Map<string, string>();
+
+async function getGitHubDisplayName(username: string, GITHUB_TOKEN: string): Promise<string> {
+    if (userNameCache.has(username)) {
+        return userNameCache.get(username)!;
+    }
+
+    try {
+        const res = await axios.get(`https://api.github.com/users/${username}`, {
+            headers: {
+                Authorization: `Bearer ${GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github+json',
+            },
+        });
+
+        const name = res.data.name || username;
+        userNameCache.set(username, name);
+        return name;
+    } catch (err) {
+        console.warn(`Failed to fetch display name for ${username}, using login.`);
+        return username;
+    }
+}
+
 async function getSecret(name: string): Promise<string | undefined> {
     try {
         const client = new SSMClient({ region: process.env.AWS_REGION || 'eu-west-1' });
@@ -53,7 +77,7 @@ async function sendSlackMessage(channel: string, blocks: any, slackToken: string
     });
 }
 
-function buildSlackBlocks(team: Team, prsByRepo: Record<string, any[]>) {
+async function buildSlackBlocks(team: Team, prsByRepo: Record<string, any[]>, GITHUB_TOKEN: string) {
     const blocks: any[] = [
         {
             type: 'header',
@@ -79,12 +103,14 @@ function buildSlackBlocks(team: Team, prsByRepo: Record<string, any[]>) {
             const createdAt = dayjs(pr.created_at);
             const daysOpen = dayjs().diff(createdAt, 'day');
             const colorEmoji = daysOpen >= 10 ? ':red_circle:' : daysOpen >= 5 ? ':large_orange_circle:' : ':large_green_circle:';
+            const author = await getGitHubDisplayName(pr.user.login, GITHUB_TOKEN);
+
 
             blocks.push({
                 type: 'section',
                 text: {
                     type: 'mrkdwn',
-                    text: `${colorEmoji} *<${pr.html_url}|${truncateTitle(pr.title)}>* - 👤 *${pr.user.login}* - ⏱ *${daysOpen}* days`,
+                    text: `${colorEmoji} *<${pr.html_url}|${truncateTitle(pr.title)}>* - 👤 *${author} (${pr.user.login})* - ⏱ *${daysOpen}* days`,
                 },
             });
         }
@@ -117,7 +143,7 @@ async function processTeam(team: Team, creds: { GITHUB_TOKEN: string; GITHUB_ORG
     }
 
     if (hasPRs) {
-        const blocks = buildSlackBlocks(team, prsByRepo);
+        const blocks = await buildSlackBlocks(team, prsByRepo, creds.GITHUB_TOKEN);
         await sendSlackMessage(team.slack_channel, blocks, creds.SLACK_TOKEN);
     } else {
         await axios.post('https://slack.com/api/chat.postMessage', {
