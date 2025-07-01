@@ -4,6 +4,7 @@ teams:
     repositories:
       - e2e-tests
       - e2e-apps
+      - test-precondition
     members:
       - davidmateodev
       - christopherlingcarragher
