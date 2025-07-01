@@ -10,3 +10,17 @@ teams:
       - christopherlingcarragher
       - AnatoliTsoi
       - volodimirchernov
+  - name: Book Team - Web
+    slack_channel: "#team-book-qa"
+    repositories:
+      - strawberry_web
+      - spec_content-resources
+      - Service-MVP
+      - strawberry_portal
+      - strawberry_edge
+      - strawberry_map
+      - strawberry_terraform
+    members:
+      - prickar
+      - ziaahmad
+      - mattiasmucherie
