@@ -170,7 +170,12 @@ async function processTeam(team: Team, creds: { GITHUB_TOKEN: string; GITHUB_ORG
 
     const config: Config = yaml.load(fs.readFileSync('./config.yaml', 'utf8')) as Config;
 
-    for (const team of config.teams) {
+    const selectedTeam = process.env.TEAM_NAME;
+    const selectedTeams = selectedTeam
+        ? config.teams.filter(team => team.name === selectedTeam)
+        : config.teams;
+
+    for (const team of selectedTeams) {
         try {
             await processTeam(team, { GITHUB_TOKEN, GITHUB_ORG, SLACK_TOKEN });
         } catch (err) {

@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 6 * * 1-5'  # 08:00 Stockholm time every day between Monday and Friday
   workflow_dispatch:
+    inputs:
+      team:
+        description: 'Team name (optional). If empty, runs for all teams.'
+        required: false
+        default: ''
 
 jobs:
   run:
@@ -12,6 +17,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
+      TEAM_NAME: ${{ github.event.inputs.team }}
     steps:
       - uses: actions/checkout@v3
 
