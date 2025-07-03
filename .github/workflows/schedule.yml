@@ -6,9 +6,14 @@ on:
   workflow_dispatch:
     inputs:
       team:
-        description: 'Team name (optional). If empty, runs for all teams.'
-        required: false
-        default: ''
+        description: 'Select a team to run the reminder for'
+        required: true
+        type: choice
+        options:
+          - All
+          - QA Chapter
+          - Book Team - Web
+        default: All
 
 jobs:
   run:
