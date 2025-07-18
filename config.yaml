@@ -11,7 +11,7 @@ teams:
       - AnatoliTsoi
       - volodimirchernov
   - name: Book Team - Web
-    slack_channel: "#team-book-qa"
+    slack_channel: "#book-webbies"
     repositories:
       - strawberry_web
       - spec_content-resources
