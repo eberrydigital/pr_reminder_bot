@@ -5,6 +5,8 @@ teams:
       - e2e-tests
       - e2e-apps
       - test-precondition
+      - workflow-utilities
+      - pr_reminder_bot
     members:
       - davidmateodev
       - christopherlingcarragher
