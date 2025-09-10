@@ -134,7 +134,9 @@ async function processTeam(team: Team, creds: { GITHUB_TOKEN: string; GITHUB_ORG
 
     for (const repo of team.repositories) {
         const prs = await getOpenPRs(repo, creds.GITHUB_ORG, creds.GITHUB_TOKEN);
-        const teamPRs = prs.filter((pr: any) => team.members.includes(pr.user.login));
+        const teamPRs = prs
+            .filter((pr: any) => !pr.draft)
+            .filter((pr: any) => team.members.includes(pr.user.login));
 
         if (teamPRs.length > 0) {
             hasPRs = true;
