@@ -7,11 +7,14 @@ teams:
       - test-precondition
       - workflow-utilities
       - pr_reminder_bot
+      - broken-links
     members:
       - davidmateodev
       - christopherlingcarragher
       - AnatoliTsoi
       - volodimirchernov
+      - fkavakli
+      - olenzing
   - name: Book Team - Web
     slack_channel: "#book-webbies"
     repositories:
