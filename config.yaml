@@ -1,6 +1,6 @@
 teams:
   - name: QA Chapter
-    slack_channel: "#team-chapter-qa"
+    slack_channel: "#qa-automation"
     repositories:
       - e2e-tests
       - e2e-apps
