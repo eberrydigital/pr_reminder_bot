@@ -4,19 +4,10 @@ import * as fs from 'fs';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { shouldRunForSchedule } from './utils/cronMatcher';
+import { Config, Team } from './types';
 
 dotenv.config();
-
-interface Config {
-    teams: Team[];
-}
-
-interface Team {
-    name: string;
-    slack_channel: string;
-    repositories: string[];
-    members: string[];
-}
 
 const userNameCache = new Map<string, string>();
 
@@ -160,28 +151,77 @@ async function processTeam(team: Team, creds: { GITHUB_TOKEN: string; GITHUB_ORG
     }
 }
 
-(async () => {
-    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || await getSecret('/pr-reminder/github_token');
-    const GITHUB_ORG = process.env.GITHUB_ORG || await getSecret('/pr-reminder/github_org');
-    const SLACK_TOKEN = process.env.SLACK_TOKEN || await getSecret('/pr-reminder/slack_token');
+export async function main() {
+    try {
+        // When testing locally, only use environment variables
+        const isLocalTest = process.env.CONFIG_PATH?.includes('test');
 
-    if (!GITHUB_TOKEN || !SLACK_TOKEN || !GITHUB_ORG) {
-        console.error('Missing required secrets. Exiting.');
+        const GITHUB_TOKEN = isLocalTest ? process.env.GITHUB_TOKEN : (process.env.GITHUB_TOKEN || await getSecret('/pr-reminder/github_token'));
+        const GITHUB_ORG = isLocalTest ? process.env.GITHUB_ORG : (process.env.GITHUB_ORG || await getSecret('/pr-reminder/github_org'));
+        const SLACK_TOKEN = isLocalTest ? process.env.SLACK_TOKEN : (process.env.SLACK_TOKEN || await getSecret('/pr-reminder/slack_token'));
+
+        if (!GITHUB_TOKEN || !SLACK_TOKEN || !GITHUB_ORG) {
+            console.error('Missing required environment variables. Please check your .env file');
+            process.exit(1);
+        }
+
+        const credentials = {
+            GITHUB_TOKEN,
+            GITHUB_ORG,
+            SLACK_TOKEN
+        };
+
+        const configPath = process.env.CONFIG_PATH || 'config.yaml';
+        const config = yaml.load(fs.readFileSync(configPath, 'utf8')) as Config;
+        const teamName = process.env.TEAM_NAME;
+
+        console.log('Starting PR reminder check...');
+
+        // Filter teams based on schedule or manual trigger
+        const teamsToProcess = config.teams.filter(team => {
+            // If we're in test mode, always process the team
+            if (isLocalTest) {
+                console.log(`Processing test team: ${team.name}`);
+                return true;
+            }
+
+            // If manually triggered with a specific team
+            if (teamName && teamName !== 'All') {
+                console.log(`Manual trigger for team: ${team.name}`);
+                return team.name === teamName;
+            }
+
+            // If manually triggered with 'All'
+            if (teamName === 'All') {
+                console.log(`Processing all teams: ${team.name}`);
+                return true;
+            }
+
+            // If triggered by schedule, check the team's schedule
+            const shouldRun = shouldRunForSchedule(team.schedule);
+            if (shouldRun) {
+                console.log(`Schedule matched for team: ${team.name} (${team.schedule})`);
+            }
+            return shouldRun;
+        });
+
+        if (teamsToProcess.length === 0) {
+            console.log('No teams to process at this time based on schedules');
+            return;
+        }
+
+        for (const team of teamsToProcess) {
+            console.log(`Processing team: ${team.name}`);
+            await processTeam(team, credentials);
+        }
+    } catch (error) {
+        console.error('Error:', error);
         process.exit(1);
     }
+}
 
-    const config: Config = yaml.load(fs.readFileSync('./config.yaml', 'utf8')) as Config;
-
-    const selectedTeam = process.env.TEAM_NAME;
-    const selectedTeams = selectedTeam
-        ? config.teams.filter(team => team.name === selectedTeam)
-        : config.teams;
-
-    for (const team of selectedTeams) {
-        try {
-            await processTeam(team, { GITHUB_TOKEN, GITHUB_ORG, SLACK_TOKEN });
-        } catch (err) {
-            console.error(`Error processing team ${team.name}:`, err);
-        }
-    }
-})();
+if (require.main === module) {
+    (async () => {
+        await main();
+    })();
+}
