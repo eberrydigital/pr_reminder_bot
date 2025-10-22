@@ -1,6 +1,7 @@
 teams:
   - name: QA Chapter
     slack_channel: "#qa-automation"
+    schedule: "0 6 * * 1-5"  # 08:00 Stockholm time every weekday
     repositories:
       - e2e-tests
       - e2e-apps
@@ -10,13 +11,13 @@ teams:
       - broken-links
     members:
       - davidmateodev
-      - christopherlingcarragher
       - AnatoliTsoi
       - volodimirchernov
       - fkavakli
       - olenzing
   - name: Book Team - Web
     slack_channel: "#book-webbies"
+    schedule: "0 6 * * 1"  # 08:00 Stockholm time every Monday
     repositories:
       - strawberry_web
       - spec_content-resources
@@ -27,7 +28,6 @@ teams:
       - strawberry_terraform
     members:
       - prickar
-      - ziaahmad
       - mattiasmucherie
       - ell-ska
       - davidmateodev
