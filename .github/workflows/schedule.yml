@@ -23,6 +23,9 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       TEAM_NAME: ${{ github.event.inputs.team }}
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_ORG: ${{ secrets.GH_ORG }}
+      SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
