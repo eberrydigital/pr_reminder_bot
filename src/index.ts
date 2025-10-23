@@ -20,6 +20,7 @@ async function getGitHubDisplayName(username: string, GITHUB_TOKEN: string): Pro
         const res = await axios.get(`https://api.github.com/users/${username}`, {
             headers: {
                 Authorization: `Bearer ${GITHUB_TOKEN}`,
+                'X-GitHub-Api-Version': '2022-11-28',
                 Accept: 'application/vnd.github+json',
             },
         });
@@ -50,6 +51,7 @@ async function getOpenPRs(repo: string, org: string, token: string) {
     const response = await axios.get(url, {
         headers: {
             Authorization: `Bearer ${token}`,
+            'X-GitHub-Api-Version': '2022-11-28',
             Accept: 'application/vnd.github+json',
         },
     });
