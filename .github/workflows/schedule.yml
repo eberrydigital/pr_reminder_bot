@@ -2,7 +2,7 @@ name: PR Reminder Bot
 
 on:
   schedule:
-    - cron: '0 6 * * 1-5'  # Run once daily at 08:00 Stockholm time
+    - cron: '0 9 * * 1-5'  # Run once daily at 08:00 Stockholm time
   workflow_dispatch:
     inputs:
       team:
@@ -12,7 +12,6 @@ on:
         options:
           - All
           - QA Chapter
-          - Book Team - Web
         default: All
 
 jobs:
