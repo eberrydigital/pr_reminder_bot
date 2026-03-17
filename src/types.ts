@@ -7,5 +7,4 @@ export interface Team {
     slack_channel: string;
     repositories: string[];
     members: string[];
-    schedule: string;
 }

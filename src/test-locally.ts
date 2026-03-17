@@ -29,7 +29,6 @@ const testConfig: Config = {
             slack_channel: getRequiredEnvVar('TEST_SLACK_CHANNEL'),
             repositories: getRequiredEnvVar('TEST_REPOSITORIES').split(','),
             members: getRequiredEnvVar('TEST_TEAM_MEMBERS').split(','),
-            schedule: getRequiredEnvVar('TEST_SCHEDULE')
         }
     ]
 };
@@ -37,7 +36,7 @@ const testConfig: Config = {
 const TEST_CONFIG_PATH = 'config.test.yaml';
 fs.writeFileSync(TEST_CONFIG_PATH, yaml.dump(testConfig));
 
-process.env.TEAM_NAME = 'Test Team';
+process.env.TEAM_NAME = getRequiredEnvVar('TEST_TEAM_NAME');
 process.env.CONFIG_PATH = TEST_CONFIG_PATH;
 
 import('./index').then(async ({ main }) => {

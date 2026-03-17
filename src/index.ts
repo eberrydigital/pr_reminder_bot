@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
-import { shouldRunForSchedule } from './utils/cronMatcher';
 import { Config, Team } from './types';
 
 dotenv.config();
@@ -179,36 +178,25 @@ export async function main() {
 
         console.log('Starting PR reminder check...');
 
-        // Filter teams based on schedule or manual trigger
+        // Filter teams based on manual trigger
         const teamsToProcess = config.teams.filter(team => {
-            // If we're in test mode, always process the team
-            if (isLocalTest) {
-                console.log(`Processing test team: ${team.name}`);
-                return true;
-            }
-
             // If manually triggered with a specific team
             if (teamName && teamName !== 'All') {
-                console.log(`Manual trigger for team: ${team.name}`);
+                console.log(`Processing team: ${team.name}`);
                 return team.name === teamName;
             }
 
-            // If manually triggered with 'All'
-            if (teamName === 'All') {
-                console.log(`Processing all teams: ${team.name}`);
+            // If manually triggered with 'All' or no team specified, process all teams
+            if (teamName === 'All' || !teamName) {
+                console.log(`Processing team: ${team.name}`);
                 return true;
             }
 
-            // If triggered by schedule, check the team's schedule
-            const shouldRun = shouldRunForSchedule(team.schedule);
-            if (shouldRun) {
-                console.log(`Schedule matched for team: ${team.name} (${team.schedule})`);
-            }
-            return shouldRun;
+            return false;
         });
 
         if (teamsToProcess.length === 0) {
-            console.log('No teams to process at this time based on schedules');
+            console.log('No teams to process');
             return;
         }
 
